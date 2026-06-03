@@ -1,0 +1,60 @@
+# ─── Java / Maven ─────────────────────────────────────────
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+.mvn/wrapper/maven-wrapper.jar
+
+# ─── Spring Boot ──────────────────────────────────────────
+spring-shell.log
+*.log
+logs/
+
+# ─── IntelliJ / IDE ───────────────────────────────────────
+.idea/
+*.iml
+*.iws
+*.ipr
+.classpath
+.project
+.settings/
+.factorypath
+out/
+*.orig
+
+# ─── VS Code ──────────────────────────────────────────────
+.vscode/
+*.code-workspace
+
+# ─── Node / React ─────────────────────────────────────────
+node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+frontend/.env.production
+
+# ─── Environment files (NEVER commit secrets) ─────────────
+.env
+.env.local
+.env.production
+.env.*.local
+!.env.example
+
+# ─── Docker ───────────────────────────────────────────────
+docker-compose.override.yml
+
+# ─── OS ───────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ─── Gradle (if ever added) ───────────────────────────────
+.gradle/
+build/
+
+# ─── Python (scripts) ─────────────────────────────────────
+__pycache__/
+*.pyc
+.venv/

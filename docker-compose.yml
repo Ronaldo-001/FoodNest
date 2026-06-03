@@ -1,0 +1,328 @@
+version: "3.9"
+
+# ============================================================
+#  FoodWise — Docker Compose (Local Development)
+# ============================================================
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+
+  # ══════════════════════════════════════════════════════════
+  #  DATABASES
+  # ══════════════════════════════════════════════════════════
+
+  auth-postgres:
+    image: postgres:15-alpine
+    container_name: foodwise-auth-postgres
+    environment:
+      POSTGRES_DB: ${AUTH_DB_NAME:-auth_db}
+      POSTGRES_USER: ${AUTH_DB_USER:-auth_user}
+      POSTGRES_PASSWORD: ${AUTH_DB_PASSWORD}
+    volumes:
+      - auth-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${AUTH_DB_USER:-auth_user} -d ${AUTH_DB_NAME:-auth_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - auth-net
+    logging: *default-logging
+
+  catalog-postgres:
+    image: postgres:15-alpine
+    container_name: foodwise-catalog-postgres
+    environment:
+      POSTGRES_DB: ${CATALOG_DB_NAME:-catalog_db}
+      POSTGRES_USER: ${CATALOG_DB_USER:-catalog_user}
+      POSTGRES_PASSWORD: ${CATALOG_DB_PASSWORD}
+    volumes:
+      - catalog-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${CATALOG_DB_USER:-catalog_user} -d ${CATALOG_DB_NAME:-catalog_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - catalog-net
+    logging: *default-logging
+
+  inventory-postgres:
+    image: postgres:15-alpine
+    container_name: foodwise-inventory-postgres
+    environment:
+      POSTGRES_DB: ${INVENTORY_DB_NAME:-inventory_db}
+      POSTGRES_USER: ${INVENTORY_DB_USER:-inventory_user}
+      POSTGRES_PASSWORD: ${INVENTORY_DB_PASSWORD}
+    volumes:
+      - inventory-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${INVENTORY_DB_USER:-inventory_user} -d ${INVENTORY_DB_NAME:-inventory_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - inventory-net
+    logging: *default-logging
+
+  # ══════════════════════════════════════════════════════════
+  #  REDIS SIDECARS (one per service pod)
+  # ══════════════════════════════════════════════════════════
+
+  auth-redis:
+    image: redis:7-alpine
+    container_name: foodwise-auth-redis
+    command: redis-server --save "" --appendonly no --maxmemory 128mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - auth-net
+    logging: *default-logging
+
+  catalog-redis:
+    image: redis:7-alpine
+    container_name: foodwise-catalog-redis
+    command: redis-server --save "" --appendonly no --maxmemory 128mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - catalog-net
+    logging: *default-logging
+
+  inventory-redis:
+    image: redis:7-alpine
+    container_name: foodwise-inventory-redis
+    command: redis-server --save "" --appendonly no --maxmemory 128mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - inventory-net
+    logging: *default-logging
+
+  # ══════════════════════════════════════════════════════════
+  #  MAILHOG (local SMTP for dev)
+  # ══════════════════════════════════════════════════════════
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: foodwise-mailhog
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # Web UI → http://localhost:8025
+    networks:
+      - inventory-net
+    logging: *default-logging
+
+  # ══════════════════════════════════════════════════════════
+  #  MICROSERVICES
+  # ══════════════════════════════════════════════════════════
+
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+    container_name: foodwise-auth-service
+    ports:
+      - "8081:8081"
+    environment:
+      POSTGRES_HOST: auth-postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${AUTH_DB_NAME:-auth_db}
+      POSTGRES_USER: ${AUTH_DB_USER:-auth_user}
+      POSTGRES_PASSWORD: ${AUTH_DB_PASSWORD}
+      REDIS_HOST: auth-redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ACCESS_EXPIRY_MS: ${JWT_ACCESS_EXPIRY_MS:-900000}
+      JWT_REFRESH_EXPIRY_MS: ${JWT_REFRESH_EXPIRY_MS:-604800000}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
+      RATE_LIMIT_LOGIN_MAX: ${RATE_LIMIT_LOGIN_MAX:-5}
+      RATE_LIMIT_LOGIN_WINDOW_S: ${RATE_LIMIT_LOGIN_WINDOW_S:-60}
+      RATE_LIMIT_REGISTER_MAX: ${RATE_LIMIT_REGISTER_MAX:-3}
+      RATE_LIMIT_REGISTER_WINDOW_S: ${RATE_LIMIT_REGISTER_WINDOW_S:-3600}
+    depends_on:
+      auth-postgres:
+        condition: service_healthy
+      auth-redis:
+        condition: service_healthy
+    networks:
+      - auth-net
+      - shared-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8081/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging: *default-logging
+
+  catalog-order-service:
+    build:
+      context: ./catalog-order-service
+      dockerfile: Dockerfile
+    container_name: foodwise-catalog-order-service
+    ports:
+      - "8082:8082"
+    environment:
+      POSTGRES_HOST: catalog-postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${CATALOG_DB_NAME:-catalog_db}
+      POSTGRES_USER: ${CATALOG_DB_USER:-catalog_user}
+      POSTGRES_PASSWORD: ${CATALOG_DB_PASSWORD}
+      REDIS_HOST: catalog-redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET}
+      AUTH_SERVICE_URL: http://auth-service:8081
+      INVENTORY_SERVICE_URL: http://inventory-app:8083
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
+    depends_on:
+      catalog-postgres:
+        condition: service_healthy
+      catalog-redis:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+    networks:
+      - catalog-net
+      - shared-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8082/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging: *default-logging
+
+  inventory-app:
+    build:
+      context: ./inventory-notification-service/inventory-app
+      dockerfile: Dockerfile
+    container_name: foodwise-inventory-app
+    ports:
+      - "8083:8083"
+    environment:
+      POSTGRES_HOST: inventory-postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${INVENTORY_DB_NAME:-inventory_db}
+      POSTGRES_USER: ${INVENTORY_DB_USER:-inventory_user}
+      POSTGRES_PASSWORD: ${INVENTORY_DB_PASSWORD}
+      REDIS_HOST: inventory-redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET}
+      AUTH_SERVICE_URL: http://auth-service:8081
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
+      SURPLUS_QUANTITY_THRESHOLD: ${SURPLUS_QUANTITY_THRESHOLD:-10}
+      SURPLUS_EXPIRY_HOURS: ${SURPLUS_EXPIRY_HOURS:-24}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
+    depends_on:
+      inventory-postgres:
+        condition: service_healthy
+      inventory-redis:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+    networks:
+      - inventory-net
+      - shared-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8083/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging: *default-logging
+
+  notification-worker:
+    build:
+      context: ./inventory-notification-service/notification-worker
+      dockerfile: Dockerfile
+    container_name: foodwise-notification-worker
+    environment:
+      POSTGRES_HOST: inventory-postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${INVENTORY_DB_NAME:-inventory_db}
+      POSTGRES_USER: ${INVENTORY_DB_USER:-inventory_user}
+      POSTGRES_PASSWORD: ${INVENTORY_DB_PASSWORD}
+      MAIL_HOST: ${MAIL_HOST:-mailhog}
+      MAIL_PORT: ${MAIL_PORT:-1025}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-noreply@foodwise.local}
+      NOTIFICATION_POLL_INTERVAL_MS: ${NOTIFICATION_POLL_INTERVAL_MS:-60000}
+    depends_on:
+      inventory-postgres:
+        condition: service_healthy
+      inventory-app:
+        condition: service_healthy
+      mailhog:
+        condition: service_started
+    networks:
+      - inventory-net
+    logging: *default-logging
+
+  # ══════════════════════════════════════════════════════════
+  #  FRONTEND
+  # ══════════════════════════════════════════════════════════
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8081}
+        VITE_CATALOG_API_URL: ${VITE_CATALOG_API_URL:-http://localhost:8082}
+        VITE_INVENTORY_API_URL: ${VITE_INVENTORY_API_URL:-http://localhost:8083}
+    container_name: foodwise-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      catalog-order-service:
+        condition: service_healthy
+      inventory-app:
+        condition: service_healthy
+    networks:
+      - shared-net
+    logging: *default-logging
+
+# ══════════════════════════════════════════════════════════
+#  NETWORKS
+# ══════════════════════════════════════════════════════════
+
+networks:
+  auth-net:
+    driver: bridge
+    internal: false
+  catalog-net:
+    driver: bridge
+    internal: false
+  inventory-net:
+    driver: bridge
+    internal: false
+  shared-net:        # services that need to talk cross-pod
+    driver: bridge
+
+# ══════════════════════════════════════════════════════════
+#  VOLUMES
+# ══════════════════════════════════════════════════════════
+
+volumes:
+  auth-postgres-data:
+  catalog-postgres-data:
+  inventory-postgres-data:
