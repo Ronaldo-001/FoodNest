@@ -23,6 +23,8 @@ services:
       POSTGRES_DB: ${AUTH_DB_NAME:-auth_db}
       POSTGRES_USER: ${AUTH_DB_USER:-auth_user}
       POSTGRES_PASSWORD: ${AUTH_DB_PASSWORD}
+    ports:
+      - "5433:5432"
     volumes:
       - auth-postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -41,6 +43,8 @@ services:
       POSTGRES_DB: ${CATALOG_DB_NAME:-catalog_db}
       POSTGRES_USER: ${CATALOG_DB_USER:-catalog_user}
       POSTGRES_PASSWORD: ${CATALOG_DB_PASSWORD}
+    ports:
+      - "5434:5432"
     volumes:
       - catalog-postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -59,6 +63,8 @@ services:
       POSTGRES_DB: ${INVENTORY_DB_NAME:-inventory_db}
       POSTGRES_USER: ${INVENTORY_DB_USER:-inventory_user}
       POSTGRES_PASSWORD: ${INVENTORY_DB_PASSWORD}
+    ports:
+      - "5435:5432"
     volumes:
       - inventory-postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -78,6 +84,8 @@ services:
     image: redis:7-alpine
     container_name: foodwise-auth-redis
     command: redis-server --save "" --appendonly no --maxmemory 128mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6380:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -91,6 +99,8 @@ services:
     image: redis:7-alpine
     container_name: foodwise-catalog-redis
     command: redis-server --save "" --appendonly no --maxmemory 128mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6381:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -104,6 +114,8 @@ services:
     image: redis:7-alpine
     container_name: foodwise-inventory-redis
     command: redis-server --save "" --appendonly no --maxmemory 128mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6382:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s

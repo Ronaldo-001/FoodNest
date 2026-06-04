@@ -20,8 +20,7 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
   flyway:
-    enabled: true
-    locations: classpath:db/migration
+    enabled: false
 
   mail:
     host: ${MAIL_HOST:mailhog}

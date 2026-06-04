@@ -39,26 +39,32 @@ export default function RestaurantDashboard() {
   // Menu mutations
   const createMenuMutation = useMutation({
     mutationFn: menuApi.create,
-    onSuccess: () => { queryClient.invalidateQueries(['menu']); setShowMenuForm(false); resetMenuForm(); toast.success('Menu item created!') },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['menu'] }); setShowMenuForm(false); resetMenuForm(); toast.success('Menu item created!') },
     onError: (err) => toast.error(err.response?.data?.message || 'Failed to create item'),
   })
 
   const updateMenuMutation = useMutation({
     mutationFn: ({ id, data }) => menuApi.update(id, data),
-    onSuccess: () => { queryClient.invalidateQueries(['menu']); setEditingItem(null); resetMenuForm(); toast.success('Menu item updated!') },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['menu'] }); setEditingItem(null); resetMenuForm(); toast.success('Menu item updated!') },
     onError: (err) => toast.error(err.response?.data?.message || 'Failed to update item'),
   })
 
   const deleteMenuMutation = useMutation({
     mutationFn: menuApi.remove,
-    onSuccess: () => { queryClient.invalidateQueries(['menu']); toast.success('Menu item deleted') },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['menu'] }); toast.success('Menu item deleted') },
     onError: () => toast.error('Failed to delete item'),
   })
 
   // Inventory mutations
   const createInventoryMutation = useMutation({
     mutationFn: inventoryApi.createItem,
-    onSuccess: () => { queryClient.invalidateQueries(['inventory', 'surplus']); setShowInventoryForm(false); setInventoryForm({ menuItemId: '', name: '', quantity: '', unit: '', threshold: '10', expiryDate: '' }); toast.success('Inventory item added!') },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inventory'] })
+      queryClient.invalidateQueries({ queryKey: ['surplus'] })
+      setShowInventoryForm(false)
+      setInventoryForm({ menuItemId: '', name: '', quantity: '', unit: '', threshold: '10', expiryDate: '' })
+      toast.success('Inventory item added!')
+    },
     onError: (err) => toast.error(err.response?.data?.message || 'Failed to add inventory'),
   })
 

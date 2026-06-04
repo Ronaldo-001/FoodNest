@@ -37,7 +37,7 @@ public class InventoryService {
 
     @Transactional(readOnly = true)
     public List<InventoryItemDto> getSurplusItems(Long restaurantId) {
-        LocalDate expiryThreshold = LocalDate.now().plusHours(surplusExpiryHours);
+        LocalDate expiryThreshold = LocalDate.now().plusDays(surplusExpiryHours / 24);
         return inventoryItemRepository.findSurplusItems(restaurantId, expiryThreshold).stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());

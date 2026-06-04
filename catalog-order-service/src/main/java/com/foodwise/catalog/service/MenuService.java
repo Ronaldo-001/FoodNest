@@ -57,10 +57,6 @@ public class MenuService {
         if (!caller.getRoles().contains("RESTAURANT_OWNER")) {
             throw new CatalogException("Access denied", HttpStatus.FORBIDDEN);
         }
-        if (!caller.getRestaurantId().equals(request.getRestaurantId() != null
-                ? request.getRestaurantId() : caller.getRestaurantId())) {
-            throw new CatalogException("Cannot create items for another restaurant", HttpStatus.FORBIDDEN);
-        }
 
         MenuItem item = MenuItem.builder()
                 .restaurantId(caller.getRestaurantId())

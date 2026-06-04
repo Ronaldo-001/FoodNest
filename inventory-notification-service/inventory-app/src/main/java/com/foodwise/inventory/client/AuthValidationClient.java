@@ -34,6 +34,7 @@ public class AuthValidationClient {
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + bearerToken)
                     .retrieve()
                     .bodyToMono(ValidateResponse.class)
+                    .retry(1)
                     .block(Duration.ofSeconds(5));
         } catch (WebClientResponseException e) {
             log.warn("Auth validation failed: {}", e.getMessage());

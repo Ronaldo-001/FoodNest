@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../context/AuthContext'
-import { menuApi } from '../api/menuApi'
+import { menuApi, orderApi } from '../api/menuApi'
 import { notificationApi } from '../api/inventoryApi'
 import toast from 'react-hot-toast'
 
@@ -18,10 +18,11 @@ export default function CustomerBrowse() {
   const { data: menuData, isLoading } = useQuery({
     queryKey: ['menu', 'browse', searchRestaurantId],
     queryFn: () => menuApi.getAll({ ...restaurantIdParam, size: 50 }),
+    placeholderData: (prev) => prev,
   })
 
   const createOrderMutation = useMutation({
-    mutationFn: menuApi.createOrder || (() => {}),
+    mutationFn: orderApi.create,
     onSuccess: () => {
       setCart([])
       setShowCart(false)
