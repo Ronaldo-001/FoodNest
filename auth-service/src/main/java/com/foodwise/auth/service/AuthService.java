@@ -159,6 +159,7 @@ public class AuthService {
                 .userId(user.getId())
                 .username(user.getUsername())
                 .roles(roles)
+                .restaurantId(user.getRestaurantId())
                 .build();
     }
 }
