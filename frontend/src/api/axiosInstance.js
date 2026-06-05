@@ -9,23 +9,23 @@ import axios from 'axios'
  *  - Responses log errors generically — no sensitive data in console
  */
 
-// Auth service instance
+// Auth service instance — routed through nginx reverse proxy at /api/auth/
 export const authAxios = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8081',
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api/auth',
   headers: { 'Content-Type': 'application/json' },
   timeout: 10_000,
 })
 
-// Catalog/Order service instance
+// Catalog/Order service instance — routed through nginx reverse proxy at /api/catalog/
 export const catalogAxios = axios.create({
-  baseURL: import.meta.env.VITE_CATALOG_API_URL || 'http://localhost:8082',
+  baseURL: import.meta.env.VITE_CATALOG_API_URL || '/api/catalog',
   headers: { 'Content-Type': 'application/json' },
   timeout: 10_000,
 })
 
-// Inventory service instance
+// Inventory service instance — routed through nginx reverse proxy at /api/inventory/
 export const inventoryAxios = axios.create({
-  baseURL: import.meta.env.VITE_INVENTORY_API_URL || 'http://localhost:8083',
+  baseURL: import.meta.env.VITE_INVENTORY_API_URL || '/api/inventory',
   headers: { 'Content-Type': 'application/json' },
   timeout: 10_000,
 })
