@@ -1,14 +1,5 @@
 -- V1: Initial schema for catalog_db
 
-CREATE TYPE order_status AS ENUM (
-    'PENDING',
-    'CONFIRMED',
-    'PREPARING',
-    'READY',
-    'DELIVERED',
-    'CANCELLED'
-);
-
 CREATE TABLE IF NOT EXISTS menu_items (
     id              BIGSERIAL PRIMARY KEY,
     restaurant_id   BIGINT          NOT NULL,
@@ -26,7 +17,7 @@ CREATE TABLE IF NOT EXISTS orders (
     id              BIGSERIAL PRIMARY KEY,
     customer_id     BIGINT          NOT NULL,
     restaurant_id   BIGINT          NOT NULL,
-    status          order_status    NOT NULL DEFAULT 'PENDING',
+    status          VARCHAR(50)     NOT NULL DEFAULT 'PENDING',
     total_amount    NUMERIC(12,2)   NOT NULL DEFAULT 0,
     notes           TEXT,
     created_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
