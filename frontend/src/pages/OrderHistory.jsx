@@ -13,24 +13,64 @@ const STATUS_COLORS = {
   CANCELLED: 'badge-danger',
 }
 
+const STATUS_LABELS = {
+  PENDING:   'Pending',
+  CONFIRMED: 'Confirmed',
+  PREPARING: 'Preparing',
+  READY:     'Ready for Pickup',
+  DELIVERED: 'Delivered',
+  CANCELLED: 'Cancelled',
+}
+
 export default function OrderHistory() {
   const { user, isRestaurantOwner, isCustomer } = useAuth()
+  const queryClient = useQueryClient()
+
+  const ordersQueryKey = ['orders', user?.userId, user?.restaurantId, isRestaurantOwner]
 
   const { data: ordersData, isLoading } = useQuery({
-    queryKey: ['orders', user?.userId, user?.restaurantId, isRestaurantOwner],
+    queryKey: ordersQueryKey,
     queryFn: () => isRestaurantOwner
       ? orderApi.getByRestaurant(user.restaurantId)
       : orderApi.getByCustomer(user.userId),
-    enabled: !!user,
+    enabled: !!user && (isRestaurantOwner ? !!user.restaurantId : !!user.userId),
+    refetchInterval: isRestaurantOwner ? 30_000 : false,
+  })
+
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ orderId, status }) => orderApi.updateStatus(orderId, status),
+    onSuccess: (_, { status }) => {
+      queryClient.invalidateQueries({ queryKey: ordersQueryKey })
+      const messages = {
+        CONFIRMED: 'Order confirmed!',
+        PREPARING: 'Order is being prepared',
+        READY:     'Order is ready for pickup!',
+        DELIVERED: 'Order marked as delivered',
+        CANCELLED: 'Order cancelled',
+      }
+      toast.success(messages[status] || 'Order updated')
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Failed to update order'),
   })
 
   const orders = ordersData?.content ?? []
 
+  const handleStatus = (orderId, status) => {
+    if (status === 'CANCELLED' && !confirm('Cancel this order?')) return
+    updateStatusMutation.mutate({ orderId, status })
+  }
+
   return (
     <div className="container">
       <div className="page-hero" style={{ paddingBottom: '1rem' }}>
-        <h1 className="page-hero__title">{isRestaurantOwner ? 'Restaurant Orders' : 'My Orders'}</h1>
-        <p className="page-hero__subtitle">Track all your {isRestaurantOwner ? "restaurant's" : ''} orders</p>
+        <h1 className="page-hero__title">
+          {isRestaurantOwner ? 'Incoming Orders' : 'My Orders'}
+        </h1>
+        <p className="page-hero__subtitle">
+          {isRestaurantOwner
+            ? 'Manage and update the status of customer orders'
+            : 'Track all your orders'}
+        </p>
       </div>
 
       {isLoading ? (
@@ -48,13 +88,18 @@ export default function OrderHistory() {
               <div className="flex justify-between items-center mb-md">
                 <div>
                   <span style={{ fontWeight: '700', fontSize: '1.0625rem' }}>Order #{order.id}</span>
+                  {isRestaurantOwner && (
+                    <span className="text-muted" style={{ fontSize: '0.875rem', marginLeft: '0.75rem' }}>
+                      Customer ID: {order.customerId}
+                    </span>
+                  )}
                   <span className="text-muted" style={{ fontSize: '0.875rem', marginLeft: '0.75rem' }}>
                     {new Date(order.createdAt).toLocaleString()}
                   </span>
                 </div>
                 <div className="flex items-center gap-md">
                   <span className={`badge ${STATUS_COLORS[order.status] || 'badge-neutral'}`}>
-                    {order.status}
+                    {STATUS_LABELS[order.status] || order.status}
                   </span>
                   <span style={{ fontWeight: '700', color: 'var(--color-primary-light)' }}>
                     ${order.totalAmount.toFixed(2)}
@@ -76,41 +121,45 @@ export default function OrderHistory() {
                 </p>
               )}
 
-              {/* Restaurant owner status update */}
               {isRestaurantOwner && !['DELIVERED', 'CANCELLED'].includes(order.status) && (
-                <div className="flex gap-sm mt-md">
+                <div className="flex gap-sm mt-md" style={{ flexWrap: 'wrap' }}>
                   {order.status === 'PENDING' && (
                     <button className="btn btn-primary btn-sm"
                       id={`confirm-order-${order.id}`}
-                      onClick={() => orderApi.updateStatus(order.id, 'CONFIRMED').then(() => toast.success('Order confirmed'))}>
-                      Confirm
+                      disabled={updateStatusMutation.isPending}
+                      onClick={() => handleStatus(order.id, 'CONFIRMED')}>
+                      ✓ Confirm
                     </button>
                   )}
                   {order.status === 'CONFIRMED' && (
                     <button className="btn btn-primary btn-sm"
                       id={`preparing-order-${order.id}`}
-                      onClick={() => orderApi.updateStatus(order.id, 'PREPARING').then(() => toast.success('Order in preparation'))}>
-                      Start Preparing
+                      disabled={updateStatusMutation.isPending}
+                      onClick={() => handleStatus(order.id, 'PREPARING')}>
+                      🍳 Start Preparing
                     </button>
                   )}
                   {order.status === 'PREPARING' && (
                     <button className="btn btn-primary btn-sm"
                       id={`ready-order-${order.id}`}
-                      onClick={() => orderApi.updateStatus(order.id, 'READY').then(() => toast.success('Order ready!'))}>
-                      Mark Ready
+                      disabled={updateStatusMutation.isPending}
+                      onClick={() => handleStatus(order.id, 'READY')}>
+                      🔔 Mark Ready
                     </button>
                   )}
                   {order.status === 'READY' && (
                     <button className="btn btn-primary btn-sm"
                       id={`delivered-order-${order.id}`}
-                      onClick={() => orderApi.updateStatus(order.id, 'DELIVERED').then(() => toast.success('Order delivered!'))}>
-                      Mark Delivered
+                      disabled={updateStatusMutation.isPending}
+                      onClick={() => handleStatus(order.id, 'DELIVERED')}>
+                      ✅ Mark Delivered
                     </button>
                   )}
                   <button className="btn btn-danger btn-sm"
                     id={`cancel-order-${order.id}`}
-                    onClick={() => { if (confirm('Cancel this order?')) orderApi.updateStatus(order.id, 'CANCELLED').then(() => toast.success('Order cancelled')) }}>
-                    Cancel
+                    disabled={updateStatusMutation.isPending}
+                    onClick={() => handleStatus(order.id, 'CANCELLED')}>
+                    ✕ Cancel
                   </button>
                 </div>
               )}

@@ -33,6 +33,10 @@ export default function Navbar() {
                   `navbar__link ${isActive ? 'active' : ''}`}>
                   Dashboard
                 </NavLink>
+                <NavLink to="/orders" className={({ isActive }) =>
+                  `navbar__link ${isActive ? 'active' : ''}`}>
+                  Orders
+                </NavLink>
                 <NavLink to="/surplus" className={({ isActive }) =>
                   `navbar__link ${isActive ? 'active' : ''}`}>
                   Surplus
