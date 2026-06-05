@@ -57,6 +57,8 @@ public class SecurityConfig {
                 .referrerPolicy(rp -> rp.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))
             )
             .authorizeHttpRequests(auth -> auth
+                // CORS preflights must be allowed before the authorization filter sees them
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 // Public endpoints
                 .requestMatchers(HttpMethod.POST, "/auth/register").permitAll()
                 .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()

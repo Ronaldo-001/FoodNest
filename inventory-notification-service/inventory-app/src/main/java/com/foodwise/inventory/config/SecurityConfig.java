@@ -52,6 +52,8 @@ public class SecurityConfig {
                 .referrerPolicy(rp -> rp.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))
             )
             .authorizeHttpRequests(auth -> auth
+                // CORS preflights must be allowed before the authorization filter sees them
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                 // Internal endpoints — token checked by InternalTokenFilter
                 .requestMatchers(HttpMethod.POST, "/inventory/deduct").permitAll()
