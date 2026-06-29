@@ -1,0 +1,106 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_REGISTRY = 'foodwise'
+        IMAGE_NAME      = 'frontend'
+        IMAGE_TAG       = "${env.BUILD_NUMBER}"
+        SERVICE_DIR     = 'frontend'
+        TRIVY_VERSION   = '0.50.1'
+    }
+
+    options {
+        timestamps()
+        disableConcurrentBuilds()
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+                echo "Branch: ${env.BRANCH_NAME ?: 'N/A'} | Build: #${env.BUILD_NUMBER}"
+            }
+        }
+
+        stage('Install Trivy') {
+            steps {
+                sh '''
+                    if ! command -v trivy >/dev/null 2>&1; then
+                        echo "Installing Trivy v${TRIVY_VERSION}..."
+                        curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
+                            | sh -s -- -b /usr/local/bin v${TRIVY_VERSION}
+                    fi
+                    trivy --version
+                '''
+            }
+        }
+
+        stage('Trivy Filesystem Scan') {
+            steps {
+                sh '''
+                    trivy fs \
+                        --exit-code 0 \
+                        --severity HIGH,CRITICAL \
+                        --ignore-unfixed \
+                        --format table \
+                        --output trivy-fs-report.txt \
+                        ${SERVICE_DIR}/
+                    echo "=== Filesystem Scan Report ==="
+                    cat trivy-fs-report.txt
+                '''
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'trivy-fs-report.txt', allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh '''
+                    docker build \
+                        -t ${DOCKER_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} \
+                        -t ${DOCKER_REGISTRY}/${IMAGE_NAME}:latest \
+                        ${SERVICE_DIR}/
+                    echo "Built: ${DOCKER_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+                '''
+            }
+        }
+
+        stage('Trivy Image Scan') {
+            steps {
+                sh '''
+                    trivy image \
+                        --exit-code 1 \
+                        --severity CRITICAL \
+                        --ignore-unfixed \
+                        --format table \
+                        --output trivy-image-report.txt \
+                        ${DOCKER_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}
+                    echo "=== Image Scan Report ==="
+                    cat trivy-image-report.txt
+                '''
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'trivy-image-report.txt', allowEmptyArchive: true
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "SUCCESS: ${IMAGE_NAME}:${IMAGE_TAG} passed all security checks."
+        }
+        failure {
+            echo "FAILURE: ${IMAGE_NAME} pipeline failed. Review Trivy reports in build artifacts."
+        }
+        always {
+            sh "docker rmi ${DOCKER_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} ${DOCKER_REGISTRY}/${IMAGE_NAME}:latest || true"
+            cleanWs()
+        }
+    }
+}

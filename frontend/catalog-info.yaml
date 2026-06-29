@@ -1,0 +1,21 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: foodnest-frontend
+  description: React SPA providing UI for restaurant owners (menu and inventory management, order handling) and customers (browsing, ordering, surplus alert subscriptions).
+  annotations:
+    backstage.io/techdocs-ref: dir:.
+  tags:
+    - react
+    - vite
+    - frontend
+    - spa
+spec:
+  type: website
+  lifecycle: production
+  owner: guests
+  system: foodnest
+  dependsOn:
+    - component:auth-service
+    - component:catalog-order-service
+    - component:inventory-app

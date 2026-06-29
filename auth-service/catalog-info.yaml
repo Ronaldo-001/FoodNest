@@ -1,0 +1,51 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: auth-service
+  description: Central authentication and authorization service. Issues JWTs, manages refresh tokens, and validates identity for all other FoodNest services.
+  annotations:
+    backstage.io/techdocs-ref: dir:.
+  tags:
+    - java
+    - spring-boot
+    - authentication
+    - jwt
+spec:
+  type: service
+  lifecycle: production
+  owner: guests
+  system: foodnest
+  providesApis:
+    - auth-api
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: auth-api
+  description: Authentication API — register, login, logout, refresh, validate
+spec:
+  type: openapi
+  lifecycle: production
+  owner: guests
+  system: foodnest
+  definition: |
+    openapi: "3.0.0"
+    info:
+      title: Auth Service API
+      version: "1.0.0"
+    paths:
+      /auth/register:
+        post:
+          summary: Register a new user
+      /auth/login:
+        post:
+          summary: Login and receive tokens
+      /auth/logout:
+        post:
+          summary: Revoke tokens
+      /auth/refresh:
+        post:
+          summary: Rotate refresh token
+      /auth/validate:
+        get:
+          summary: Validate JWT (internal)

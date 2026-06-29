@@ -1,0 +1,53 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: catalog-order-service
+  description: Manages restaurant menus and customer orders. Orchestrates order lifecycle from placement through delivery and coordinates with the inventory service for stock management.
+  annotations:
+    backstage.io/techdocs-ref: dir:.
+  tags:
+    - java
+    - spring-boot
+    - orders
+    - catalog
+spec:
+  type: service
+  lifecycle: production
+  owner: guests
+  system: foodnest
+  dependsOn:
+    - component:auth-service
+    - component:inventory-app
+  providesApis:
+    - catalog-order-api
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: catalog-order-api
+  description: Menu catalog and order management API
+spec:
+  type: openapi
+  lifecycle: production
+  owner: guests
+  system: foodnest
+  definition: |
+    openapi: "3.0.0"
+    info:
+      title: Catalog & Order Service API
+      version: "1.0.0"
+    paths:
+      /menu/items:
+        get:
+          summary: Browse menu items
+        post:
+          summary: Create menu item
+      /orders:
+        post:
+          summary: Place an order
+      /orders/{id}:
+        get:
+          summary: Get order details
+      /orders/{id}/status:
+        patch:
+          summary: Update order status
