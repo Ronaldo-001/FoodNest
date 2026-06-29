@@ -1,0 +1,9 @@
+site_name: Auth Service
+site_description: FoodNest Authentication & Authorization Service
+nav:
+  - Overview: index.md
+  - API Reference: api.md
+  - Security: security.md
+  - Configuration: configuration.md
+plugins:
+  - techdocs-core

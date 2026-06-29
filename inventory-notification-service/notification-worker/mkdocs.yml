@@ -1,0 +1,8 @@
+site_name: Notification Worker
+site_description: FoodNest Background Email Notification Worker
+nav:
+  - Overview: index.md
+  - Email Dispatch: email-dispatch.md
+  - Configuration: configuration.md
+plugins:
+  - techdocs-core

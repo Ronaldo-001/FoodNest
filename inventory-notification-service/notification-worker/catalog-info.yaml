@@ -1,0 +1,20 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: notification-worker
+  description: Background worker that polls for unnotified surplus alerts and dispatches email notifications to subscribed customers via SMTP.
+  annotations:
+    backstage.io/techdocs-ref: dir:.
+  tags:
+    - java
+    - spring-boot
+    - notifications
+    - email
+    - worker
+spec:
+  type: service
+  lifecycle: production
+  owner: guests
+  system: foodnest
+  dependsOn:
+    - component:inventory-app

@@ -1,0 +1,55 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: inventory-app
+  description: Manages restaurant inventory, detects surplus conditions (low stock and expiring items), and manages customer subscriptions for surplus alerts.
+  annotations:
+    backstage.io/techdocs-ref: dir:.
+  tags:
+    - java
+    - spring-boot
+    - inventory
+    - surplus
+spec:
+  type: service
+  lifecycle: production
+  owner: guests
+  system: foodnest
+  dependsOn:
+    - component:auth-service
+  providesApis:
+    - inventory-api
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: inventory-api
+  description: Inventory management and surplus detection API
+spec:
+  type: openapi
+  lifecycle: production
+  owner: guests
+  system: foodnest
+  definition: |
+    openapi: "3.0.0"
+    info:
+      title: Inventory Service API
+      version: "1.0.0"
+    paths:
+      /inventory/items:
+        get:
+          summary: List inventory items
+        post:
+          summary: Create inventory item
+      /inventory/surplus:
+        get:
+          summary: Get surplus items
+      /inventory/deduct:
+        post:
+          summary: Deduct stock (internal)
+      /inventory/restore:
+        post:
+          summary: Restore stock (internal)
+      /notifications/subscribe:
+        post:
+          summary: Subscribe to surplus alerts

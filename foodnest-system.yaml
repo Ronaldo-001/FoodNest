@@ -1,0 +1,10 @@
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: foodnest
+  description: Smart food inventory and surplus alert platform for restaurants
+  tags:
+    - microservices
+    - food-tech
+spec:
+  owner: guests

@@ -1,0 +1,9 @@
+site_name: Catalog & Order Service
+site_description: FoodNest Menu Catalog and Order Management Service
+nav:
+  - Overview: index.md
+  - API Reference: api.md
+  - Order Lifecycle: order-lifecycle.md
+  - Configuration: configuration.md
+plugins:
+  - techdocs-core

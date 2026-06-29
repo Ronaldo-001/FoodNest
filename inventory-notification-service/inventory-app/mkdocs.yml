@@ -1,0 +1,9 @@
+site_name: Inventory Service
+site_description: FoodNest Inventory Management and Surplus Detection Service
+nav:
+  - Overview: index.md
+  - API Reference: api.md
+  - Surplus Detection: surplus-detection.md
+  - Configuration: configuration.md
+plugins:
+  - techdocs-core

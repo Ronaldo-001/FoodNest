@@ -1,0 +1,47 @@
+---
+# Jenkins Job Builder configuration for FoodNest Catalog Order Service
+# Apply with: jenkins-jobs --conf jenkins.ini update jenkins/catalog-order-service-pipeline.yaml
+
+- job:
+    name: foodnest-catalog-order-service
+    display-name: "FoodNest | Catalog Order Service"
+    description: |
+      CI/CD pipeline for the FoodNest Catalog & Order Service (Spring Boot, port 8082).
+      Stages: Checkout → Trivy FS Scan → Docker Build → Trivy Image Scan
+    project-type: pipeline
+    concurrent: false
+
+    properties:
+      - build-discarder:
+          num-to-keep: 10
+          artifact-num-to-keep: 5
+
+    parameters:
+      - string:
+          name: BRANCH
+          default: main
+          description: "Git branch to build"
+      - string:
+          name: DOCKER_REGISTRY
+          default: foodwise
+          description: "Docker image registry/namespace prefix"
+      - string:
+          name: TRIVY_VERSION
+          default: "0.50.1"
+          description: "Trivy scanner version to install"
+
+    triggers:
+      - github
+
+    pipeline-scm:
+      scm:
+        - git:
+            url: "https://github.com/<YOUR_ORG>/FoodNest.git"
+            credentials-id: "github-credentials"
+            branches:
+              - "*/${BRANCH}"
+            clean:
+              before: true
+            wipe-workspace: false
+      script-path: catalog-order-service/Jenkinsfile
+      lightweight-checkout: true

@@ -1,0 +1,8 @@
+site_name: FoodNest Frontend
+site_description: FoodNest React Frontend Application
+nav:
+  - Overview: index.md
+  - Architecture: architecture.md
+  - Authentication Flow: authentication.md
+plugins:
+  - techdocs-core

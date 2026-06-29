@@ -1,0 +1,48 @@
+---
+# Jenkins Job Builder configuration for FoodNest Notification Worker
+# Apply with: jenkins-jobs --conf jenkins.ini update jenkins/notification-worker-pipeline.yaml
+
+- job:
+    name: foodnest-notification-worker
+    display-name: "FoodNest | Notification Worker"
+    description: |
+      CI/CD pipeline for the FoodNest Notification Worker (Spring Boot background worker, no HTTP port).
+      Part of the inventory-notification-service multi-module Maven project.
+      Stages: Checkout → Trivy FS Scan → Docker Build → Trivy Image Scan
+    project-type: pipeline
+    concurrent: false
+
+    properties:
+      - build-discarder:
+          num-to-keep: 10
+          artifact-num-to-keep: 5
+
+    parameters:
+      - string:
+          name: BRANCH
+          default: main
+          description: "Git branch to build"
+      - string:
+          name: DOCKER_REGISTRY
+          default: foodwise
+          description: "Docker image registry/namespace prefix"
+      - string:
+          name: TRIVY_VERSION
+          default: "0.50.1"
+          description: "Trivy scanner version to install"
+
+    triggers:
+      - github
+
+    pipeline-scm:
+      scm:
+        - git:
+            url: "https://github.com/<YOUR_ORG>/FoodNest.git"
+            credentials-id: "github-credentials"
+            branches:
+              - "*/${BRANCH}"
+            clean:
+              before: true
+            wipe-workspace: false
+      script-path: inventory-notification-service/notification-worker/Jenkinsfile
+      lightweight-checkout: true
