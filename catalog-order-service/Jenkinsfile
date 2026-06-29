@@ -6,7 +6,6 @@ pipeline {
         IMAGE_NAME      = 'catalog-order-service'
         IMAGE_TAG       = "${env.BUILD_NUMBER}"
         SERVICE_DIR     = 'catalog-order-service'
-        TRIVY_VERSION   = '0.50.1'
     }
 
     options {
@@ -23,16 +22,9 @@ pipeline {
             }
         }
 
-        stage('Install Trivy') {
+        stage('Verify Trivy') {
             steps {
-                sh '''
-                    if ! command -v trivy >/dev/null 2>&1; then
-                        echo "Installing Trivy v${TRIVY_VERSION}..."
-                        curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
-                            | sh -s -- -b /usr/local/bin v${TRIVY_VERSION}
-                    fi
-                    trivy --version
-                '''
+                sh 'trivy --version'
             }
         }
 
